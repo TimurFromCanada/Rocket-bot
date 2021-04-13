@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 
 namespace rocket_bot
 {
     public class Channel<T> where T : class
     {
+        public List<T> List = new List<T>();
+
         /// <summary>
         /// Возвращает элемент по индексу или null, если такого элемента нет.
         /// При присвоении удаляет все элементы после.
@@ -15,10 +18,31 @@ namespace rocket_bot
         {
             get
             {
-                return null;
+                lock (List)
+                {
+                    if (List.Count <= index || index < 0)
+                    {
+                        return null;
+                    }
+
+                    return List[index];
+                }
             }
             set
             {
+                lock (List)
+                {
+                    if (Count > index && index >= 0)
+                    {
+                        List[index] = value;
+                        List.RemoveRange(index + 1, List.Count - 1 - index);
+                    }
+
+                    else if (index == List.Count)
+                    {
+                        List.Add(value);
+                    }
+                }
             }
         }
 
@@ -27,7 +51,10 @@ namespace rocket_bot
         /// </summary>
         public T LastItem()
         {
-            return null;
+            lock (List)
+            {
+                return List.Count == 0 ? null : List[List.Count - 1];
+            }
         }
 
         /// <summary>
@@ -35,6 +62,13 @@ namespace rocket_bot
         /// </summary>
         public void AppendIfLastItemIsUnchanged(T item, T knownLastItem)
         {
+            lock (List)
+            {
+                if (Equals(LastItem(), knownLastItem))
+                {
+                    List.Add(item);
+                }
+            }
         }
 
         /// <summary>
@@ -44,7 +78,10 @@ namespace rocket_bot
         {
             get
             {
-                return 0;
+                lock (List)
+                {
+                    return List.Count;
+                }
             }
         }
     }
